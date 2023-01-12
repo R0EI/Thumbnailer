@@ -1,0 +1,40 @@
+pipeline{
+    agent any
+    parameters{
+        string(name: "version", trim: true, defaultValue: "3.5")
+    }
+
+    tools {
+        maven "my-maven"
+        jdk "jdk8u352-b08"
+    }
+    stages{
+        stage('Checkout') {
+            steps {
+                script {
+                    deleteDir()
+                    checkout scm
+                    configFileProvider([configFile(fileId: '748a8408-5cc6-48fc-afcf-8efce0b30f35', variable: 'pom')]) {
+                        sh """
+                          java -version
+                          cd imageio-extensions
+                          mvn -s ${pom} install
+                        """
+                    }
+                } 
+            }
+        }
+        stage('deploy') {
+            steps {
+                configFileProvider([configFile(fileId: "748a8408-5cc6-48fc-afcf-8efce0b30f35", variable: "pom")]) {
+                    sh """
+                        cd imageio-extensions
+                        mvn versions:set -DnewVersion=${VERSION}
+                        mvn -s ${pom} deploy
+                        """
+                  }
+              }
+        }   
+    }
+}
+
